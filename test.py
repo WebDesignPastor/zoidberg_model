@@ -7,23 +7,21 @@ from network import CNN
 
 # Define data transforms
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize((224)), # resize doc: If size is an int, smaller edge of the image will be matched to this number.
+    transforms.CenterCrop((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 # Load datasets using ImageFolder
 test_dataset = torchvision.datasets.ImageFolder(root='datasets/test', transform=transform)
-val_dataset = torchvision.datasets.ImageFolder(root='datasets/val', transform=transform)
 
 # Define data loaders
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=False)
-val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=False)
 
 # Print the number of samples in each dataset and each class
-print('Dataset\t', 'Total\t', test_dataset.classes[0], '', test_dataset.classes[1])
-print('Test:\t', len(test_dataset), '\t', test_dataset.targets.count(0), '\t', test_dataset.targets.count(1))
-print('Val:\t', len(val_dataset), '\t', val_dataset.targets.count(0), '\t', val_dataset.targets.count(1))
+print('Dataset\t', 'Total\t', test_dataset.classes[0], '', test_dataset.classes[1], '', test_dataset.classes[2])
+print('Test:\t', len(test_dataset), '\t', test_dataset.targets.count(0), '\t', test_dataset.targets.count(1), '\t', test_dataset.targets.count(2))
 print()
 
 # Define the device
@@ -34,7 +32,7 @@ print('Device:', device, '\n')
 num_classes = len(test_dataset.classes)
 model = CNN(num_classes=num_classes).to(device)
 
-model.load_state_dict(torch.load('model1.pth'))
+model.load_state_dict(torch.load('model.pth'))
 model.eval()
 
 # Test the model
