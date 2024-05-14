@@ -1,9 +1,15 @@
 import torch
-import torchvision
 from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from tqdm import tqdm
+import sys
 
 from network import CNN
+
+model_name = 'model.pth'
+if len(sys.argv) > 1:
+    model_name = sys.argv[1]
 
 # Define data transforms
 transform = transforms.Compose([
@@ -14,15 +20,20 @@ transform = transforms.Compose([
 ])
 
 # Load datasets using ImageFolder
-test_dataset = torchvision.datasets.ImageFolder(root='datasets/test', transform=transform)
+test_dataset = ImageFolder(root='datasets/test', transform=transform)
 
-# Define data loaders
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+# Define the number of samples you want to use
+subset_size = 624
+
+# Create a random subset of indices
+subset_indices = torch.randperm(len(test_dataset))[:subset_size]
+
+# Create a DataLoader using SubsetRandomSampler
+test_loader = DataLoader(test_dataset, batch_size=64, sampler=SubsetRandomSampler(subset_indices))
 
 # Print the number of samples in each dataset and each class
-print('Dataset\t', 'Total\t', test_dataset.classes[0], '', test_dataset.classes[1], '', test_dataset.classes[2])
-print('Test:\t', len(test_dataset), '\t', test_dataset.targets.count(0), '\t', test_dataset.targets.count(1), '\t', test_dataset.targets.count(2))
-print()
+print('Dataset\t', 'Test\t', test_dataset.classes[0], '', test_dataset.classes[1], '', test_dataset.classes[2])
+print('Total:\t', len(test_dataset), '\t', test_dataset.targets.count(0), '\t', test_dataset.targets.count(1), '\t', test_dataset.targets.count(2), '\n')
 
 # Define the device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -32,7 +43,8 @@ print('Device:', device, '\n')
 num_classes = len(test_dataset.classes)
 model = CNN(num_classes=num_classes).to(device)
 
-model.load_state_dict(torch.load('model.pth'))
+print('Loading the model', model_name + '...')
+model.load_state_dict(torch.load(model_name))
 model.eval()
 
 # Test the model

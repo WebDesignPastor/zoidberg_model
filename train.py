@@ -1,9 +1,15 @@
 import torch
-import torchvision
 from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from tqdm import tqdm
+import sys
 
 from network import CNN
+
+model_name = 'model.pth'
+if len(sys.argv) > 1:
+    model_name = sys.argv[1]
 
 transform = transforms.Compose([
      transforms.Resize((224)), # resize doc: If size is an int, smaller edge of the image will be matched to this number.
@@ -13,14 +19,24 @@ transform = transforms.Compose([
 ])
 
 # Load datasets using ImageFolder
-train_dataset = torchvision.datasets.ImageFolder(root='datasets/train', transform=transform)
+train_dataset = ImageFolder(root='datasets/train', transform=transform)
 
-# Define data loaders
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+# Define the number of samples you want to use
+subset_size = 5216
+
+# Create a random subset of indices
+subset_indices = torch.randperm(len(train_dataset))[:subset_size]
+
+# Create a DataLoader using SubsetRandomSampler
+train_loader = DataLoader(train_dataset, batch_size=64, sampler=SubsetRandomSampler(subset_indices))
+
+# Compute class counts using torch.bincount()
+class_counts = torch.bincount(torch.tensor(train_dataset.targets)[subset_indices], minlength=len(train_dataset.classes))
 
 # Print the number of samples in each dataset and each class
-print('Dataset\t', 'Total\t', train_dataset.classes[0], '', train_dataset.classes[1])
-print('Train:\t', len(train_dataset), '\t',  train_dataset.targets.count(0), '\t',  train_dataset.targets.count(1), '\n')
+print('Dataset\t', 'Train\t', train_dataset.classes[0], '', train_dataset.classes[1], '', train_dataset.classes[2])
+print('Total:\t', len(train_dataset), '\t', train_dataset.targets.count(0), '\t', train_dataset.targets.count(1), '\t', train_dataset.targets.count(2))
+print('Subset:\t', len(subset_indices), '\t', class_counts[0].item(), '\t', class_counts[1].item(), '\t', class_counts[2].item(), '\n')
 
 # Define the device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -35,7 +51,7 @@ criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
-num_epochs = 5
+num_epochs = 20
 train_loss = []
 accuracy_total_train = []
 
@@ -68,5 +84,5 @@ for epoch in range(num_epochs):
 print('Finished Training')
 
 print('Saving the model...')
-torch.save(model.state_dict(), 'model.pth')
-print('Model saved as model.pth')
+torch.save(model.state_dict(), model_name)
+print('Model saved as', model_name)
